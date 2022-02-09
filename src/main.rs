@@ -141,19 +141,19 @@ fn print_coloured_word(word: &Word, answer: &Word) {
     println!("");
 }
 
-fn string_to_word(string: &String) -> Word {
+fn string_to_word(string: &String) -> Option<Word> {
     let word = string.as_bytes();
     if word.len() != 5 {
-        panic!("Word not of length 5: {}", string);
+        return None;
     }
 
-    [
+    Some([
         Letter::get_letter(word[0]),
         Letter::get_letter(word[1]),
         Letter::get_letter(word[2]),
         Letter::get_letter(word[3]),
         Letter::get_letter(word[4]),
-    ]
+    ])
 }
 
 struct WordleGame {
@@ -313,16 +313,26 @@ fn main() {
     let mut game = WordleGame::new(word_list);
     while game.can_guess() && !game.guessed {
         let mut input = "".to_string();
-        std::io::stdin()
-            .read_line(&mut input)
-            .expect("invalid string!");
+        match std::io::stdin().read_line(&mut input) {
+            Ok(_) => {}
+            Err(e) => {
+                println!("Invalid input: {}!", e);
+                continue;
+            }
+        }
         input.truncate(input.len() - 1);
-        game.guess(string_to_word(&input));
+        match string_to_word(&input) {
+            Some(word) => game.guess(word),
+            None => println!("Word not on length 5!"),
+        }
     }
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
     if game.guessed {
         println!("You won!");
     } else {
-        println!("You ran out of guesses!");
+        println!(
+            "You ran out of guesses! The word was {}",
+            string_word(game.answer)
+        );
     }
 }
