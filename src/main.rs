@@ -46,8 +46,8 @@ enum ColourState {
 }
 
 impl Letter {
-    pub fn get_letter(input: u8) -> Self {
-        FromPrimitive::from_i32(input as i32).expect(format!("Invalid Letter: {}", input).as_str())
+    pub fn get_letter(input: u8) -> Option<Self> {
+        FromPrimitive::from_i32(input as i32)
     }
 }
 
@@ -66,7 +66,7 @@ fn string_word(word: Word) -> String {
     ret_word
 }
 
-fn get_word_list(filepath: &str) -> Vec<Word> {
+fn get_word_list(filepath: &str) -> Option<Vec<Word>> {
     let file = File::open(filepath).unwrap();
 
     let mut lines = BufReader::new(file).lines();
@@ -77,7 +77,7 @@ fn get_word_list(filepath: &str) -> Vec<Word> {
         let line = line.unwrap();
         let word = line.as_bytes();
         if word.len() != 5 {
-            panic!("Invalid word in wordlist: {:?}", line);
+            return None;
         }
         let word = [
             Letter::get_letter(word[0]),
@@ -86,9 +86,22 @@ fn get_word_list(filepath: &str) -> Vec<Word> {
             Letter::get_letter(word[3]),
             Letter::get_letter(word[4]),
         ];
+
+        for letter in word {
+            if letter.is_none() {
+                return None;
+            }
+        }
+        let word = [
+            word[0].unwrap(),
+            word[1].unwrap(),
+            word[2].unwrap(),
+            word[3].unwrap(),
+            word[4].unwrap(),
+        ];
         word_list.push(word);
     }
-    word_list
+    Some(word_list)
 }
 
 fn get_word_colours(word: &Word, answer: &Word) -> [ColourState; 5] {
@@ -147,13 +160,28 @@ fn string_to_word(string: &String) -> Option<Word> {
         return None;
     }
 
-    Some([
+    let word = [
         Letter::get_letter(word[0]),
         Letter::get_letter(word[1]),
         Letter::get_letter(word[2]),
         Letter::get_letter(word[3]),
         Letter::get_letter(word[4]),
-    ])
+    ];
+
+    for letter in word {
+        if letter.is_none() {
+            return None;
+        }
+    }
+    let word = [
+        word[0].unwrap(),
+        word[1].unwrap(),
+        word[2].unwrap(),
+        word[3].unwrap(),
+        word[4].unwrap(),
+    ];
+
+    Some(word)
 }
 
 struct WordleGame {
@@ -309,7 +337,10 @@ impl WordleGame {
 fn main() {
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
     std::io::stdout().flush().unwrap();
-    let word_list = get_word_list("words.txt");
+    let word_list = match get_word_list("words.txt") {
+        Some(wl) => wl,
+        None => panic!("Invalid word list!"),
+    };
     let mut game = WordleGame::new(word_list);
     while game.can_guess() && !game.guessed {
         let mut input = "".to_string();
